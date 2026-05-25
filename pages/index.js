@@ -482,7 +482,7 @@ function Tracker({ session }) {
                 <div>
                   <label style={S.lbl}>Industry</label>
                   <select style={S.inp} value={form.industry} onChange={e=>setForm(f=>({...f,industry:e.target.value}))}>
-                    <option value="">Select...</option>{INDUSTRY_PRESETS.map(i=><option key={i}>{i}</option>)}<option value="__custom__">Other</option>
+                    <option value="">Select...</option>{INDUSTRY_PRESETS.filter(i=>i!=="Other").map(i=><option key={i}>{i}</option>)}<option value="__custom__">Other (specify)</option>
                   </select>
                   {form.industry==="__custom__"&&<input style={{...S.inp,marginTop:"6px"}} placeholder="e.g. Biotech" value={form.industryCustom} onChange={e=>setForm(f=>({...f,industryCustom:e.target.value}))}/>}
                 </div>
