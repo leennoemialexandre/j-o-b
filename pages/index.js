@@ -28,7 +28,8 @@ const JOB_TYPE_PRESETS = ["Full-time","Part-time","Internship","Co-op","Contract
 const EMPTY_FORM = {
   company:"", role:"", status:"Saved", industry:"", industryCustom:"",
   jobType:"", jobTypeCustom:"", cycle:"", link:"", email:"", notes:"",
-  resumeText:"", coverLetter:"", dateAdded: new Date().toISOString().split("T")[0],
+  resumeText:"", coverLetter:"", location:"", workType:"",
+  dateAdded: new Date().toISOString().split("T")[0],
 };
 
 const DEFAULT_GOAL = { enabled:false, type:"weekly", target:5, days:[1,2,3,4,5] };
@@ -247,6 +248,7 @@ function Tracker({ session }) {
     industryCustom:"", jobType: a.job_type||"", jobTypeCustom:"", cycle: a.cycle||"",
     link: a.link||"", email: a.email||"", notes: a.notes||"",
     resumeText: a.resume_text||"", coverLetter: a.cover_letter||"",
+    location: a.location||"", workType: a.work_type||"",
     dateAdded: a.date_added||new Date().toISOString().split("T")[0],
   }); setEditId(a.id); setRT("resume"); setModal("edit"); };
   const openDetail = a  => { setDA(a); setViewRes(false); setViewCL(false); setModal("detail"); };
@@ -261,6 +263,7 @@ function Tracker({ session }) {
       industry, job_type: jobType, cycle: form.cycle, link: form.link,
       email: form.email, notes: form.notes, resume_text: form.resumeText,
       cover_letter: form.coverLetter, date_added: form.dateAdded,
+      location: form.location, work_type: form.workType,
     };
     if (editId) {
       const { data } = await supabase.from("applications").update(payload).eq("id", editId).select().single();
@@ -405,6 +408,7 @@ function Tracker({ session }) {
                         <div style={S.cardR}>{app.role}</div>
                         <div style={S.cardM}>
                           {app.job_type&&<span style={{...S.tag,color:"#2563eb",borderColor:"#bfdbfe",background:"#eff6ff"}}>{app.job_type}</span>}
+                          {app.work_type&&<span style={{...S.tag,color:"#0e7490",borderColor:"#a5f3fc",background:"#ecfeff"}}>{app.work_type}</span>}
                           {app.cycle&&<span style={{...S.tag,color:"#94a3b8",borderColor:"#e2e8f0",background:"#f8fafc"}}>{app.cycle}</span>}
                           {app.resume_text&&<span style={{...S.tag,color:"#059669",borderColor:"#a7f3d0",background:"#ecfdf5"}}>resume</span>}
                           {app.cover_letter&&<span style={{...S.tag,color:"#7c3aed",borderColor:"#ddd6fe",background:"#f5f3ff"}}>cover letter</span>}
@@ -487,6 +491,18 @@ function Tracker({ session }) {
                   {form.industry==="__custom__"&&<input style={{...S.inp,marginTop:"6px"}} placeholder="e.g. Biotech" value={form.industryCustom} onChange={e=>setForm(f=>({...f,industryCustom:e.target.value}))}/>}
                 </div>
               </div>
+              <div style={S.fgrid}>
+                <div><label style={S.lbl}>Location</label><input style={S.inp} placeholder="e.g. New York, NY" value={form.location} onChange={e=>setForm(f=>({...f,location:e.target.value}))}/></div>
+                <div>
+                  <label style={S.lbl}>Work Type</label>
+                  <select style={S.inp} value={form.workType} onChange={e=>setForm(f=>({...f,workType:e.target.value}))}>
+                    <option value="">Select...</option>
+                    <option>Remote</option>
+                    <option>Hybrid</option>
+                    <option>On-site</option>
+                  </select>
+                </div>
+              </div>
               <div style={S.frow}><label style={S.lbl}>Application Cycle</label><input style={S.inp} placeholder="e.g. Fall 2026" value={form.cycle} onChange={e=>setForm(f=>({...f,cycle:e.target.value}))}/></div>
               <div style={S.frow}><label style={S.lbl}>Email Used</label><input style={S.inp} placeholder="you@email.com" value={form.email} onChange={e=>setForm(f=>({...f,email:e.target.value}))}/></div>
               <div style={S.frow}>
@@ -539,7 +555,7 @@ function Tracker({ session }) {
                   </div>
                 </div>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"10px 20px",fontSize:"0.75rem",marginBottom:"16px"}}>
-                  {[["Job Type",app.job_type],["Industry",app.industry],["Cycle",app.cycle],["Date Added",app.date_added]].map(([k,v])=>v&&(
+                  {[["Job Type",app.job_type],["Industry",app.industry],["Location",app.location],["Work Type",app.work_type],["Cycle",app.cycle],["Date Added",app.date_added]].map(([k,v])=>v&&(
                     <div key={k}><div style={{...S.lbl,marginBottom:"2px"}}>{k}</div><div style={{color:"#475569"}}>{v}</div></div>
                   ))}
                 </div>
