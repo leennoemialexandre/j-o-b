@@ -381,12 +381,12 @@ function AuthScreen() {
   return (
     <>
       <Head>
-        <title>Job Hunt</title>
+        <title>Jobaholic</title>
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Mono:wght@400&display=swap"/>
       </Head>
       <div style={S.wrap}>
         <div style={S.box}>
-          <div style={S.logo}>Job<span style={{color:"#3b82f6"}}> Hunt</span></div>
+          <div style={S.logo}>Job<span style={{color:"#3b82f6"}}>aholic</span></div>
           <div style={S.sub}>{mode==="login"?"Sign in to your account":"Create your account"}</div>
           {error&&<div style={S.err}>{error}</div>}
           {success&&<div style={S.ok}>{success}</div>}
@@ -593,14 +593,14 @@ function Tracker({ session }) {
   return (
     <>
       <Head>
-        <title>Job Hunt</title>
+        <title>Jobaholic</title>
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Mono:wght@400&display=swap"/>
       </Head>
       <div style={S.app}>
         {/* HEADER */}
         <header style={S.header}>
           <div style={{display:"flex",alignItems:"center",gap:"24px",flexWrap:"wrap"}}>
-            <div style={S.logo}>Job<span style={S.logoSpan}> Hunt</span></div>
+            <div style={S.logo}>Job<span style={S.logoSpan}>aholic</span></div>
             <div style={S.stats}>
               <span><span style={S.statVal}>{total}</span> total</span>
               <span><span style={S.statVal}>{active}</span> active</span>
