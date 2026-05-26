@@ -263,7 +263,7 @@ export default function PrepPage() {
             <div style={S.card}>
               <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:"0.85rem",color:"#0f172a",marginBottom:"14px"}}>Prep Materials</div>
               <div style={{marginBottom:"14px"}}>
-                <label style={S.lbl}>Research Links</label>
+                <label style={S.lbl}>Useful Links</label>
                 {researchLinks.map((link,i)=>(
                   <div key={i} style={{display:"flex",gap:"6px",marginBottom:"6px"}}>
                     <input style={{...S.inp,flex:1,fontSize:"0.72rem"}} placeholder="https://..." value={link} onChange={e=>{const n=[...researchLinks];n[i]=e.target.value;setResearchLinks(n);}}/>
