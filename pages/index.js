@@ -32,6 +32,7 @@ const EMPTY_FORM = {
   jobType:"", jobTypeCustom:"", cycle:"", link:"", email:"", notes:"",
   resumeText:"", coverLetter:"", location:"", workType:"",
   salaryMin:"", salaryMax:"", salaryOffered:"", interviewNotes:"", deadline:"",
+  resumeUrl:"", resumeFileName:"", coverUrl:"", coverFileName:"",
   dateAdded: new Date().toISOString().split("T")[0],
 };
 
@@ -439,9 +440,37 @@ function Tracker({ session }) {
   const [goalDraft, setGD]    = useState(DEFAULT_GOAL);
   const [toast, setToast]     = useState(null);
   const [saving, setSaving]   = useState(false);
+  const resumeFileRef = useRef(null);
+  const coverFileRef = useRef(null);
 
   const uid = session.user.id;
   const toast$ = (msg,ok=true)=>{ setToast({msg,ok}); setTimeout(()=>setToast(null),2800); };
+
+  const uploadFile = async (file, type) => {
+    const ext = file.name.split(".").pop();
+    const path = `${uid}/${type}-${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from("resumes").upload(path, file);
+    if (error) { toast$("Upload failed — try again.", false); return null; }
+    const { data } = supabase.storage.from("resumes").getPublicUrl(path);
+    return path; // store path, not public URL since bucket is private
+  };
+
+  const handleFileUpload = async (e, type) => {
+    const file = e.target.files?.[0]; if (!file) return;
+    toast$("Uploading...", true);
+    const path = await uploadFile(file, type);
+    if (path) {
+      if (type === "resume") setForm(f=>({...f, resumeUrl: path, resumeFileName: file.name}));
+      if (type === "cover") setForm(f=>({...f, coverUrl: path, coverFileName: file.name}));
+      toast$("File uploaded!");
+    }
+    e.target.value = "";
+  };
+
+  const getFileUrl = async (path) => {
+    const { data } = await supabase.storage.from("resumes").createSignedUrl(path, 60);
+    return data?.signedUrl;
+  };
 
   useEffect(()=>{
     (async()=>{
@@ -468,6 +497,8 @@ function Tracker({ session }) {
     location:a.location||"", workType:a.work_type||"",
     salaryMin:a.salary_min||"", salaryMax:a.salary_max||"", salaryOffered:a.salary_offered||"",
     interviewNotes:a.interview_notes||"", deadline:a.deadline||"",
+    resumeUrl:a.resume_url||"", resumeFileName:a.resume_url?a.resume_url.split("/").pop():"",
+    coverUrl:a.cover_letter_url||"", coverFileName:a.cover_letter_url?a.cover_letter_url.split("/").pop():"",
     dateAdded:a.date_added||new Date().toISOString().split("T")[0],
   }); setEditId(a.id); setRT("resume"); setModal("edit"); };
   const openDetail = a=>{ setDA(a); setViewRes(false); setViewCL(false); setViewIN(false); setModal("detail"); };
@@ -486,6 +517,7 @@ function Tracker({ session }) {
       salary_min:form.salaryMin||null, salary_max:form.salaryMax||null,
       salary_offered:form.salaryOffered||null, interview_notes:form.interviewNotes,
       deadline:form.deadline||null,
+      resume_url:form.resumeUrl||null, cover_letter_url:form.coverUrl||null,
     };
     if (editId) {
       const {data}=await supabase.from("applications").update(payload).eq("id",editId).select().single();
@@ -763,8 +795,22 @@ function Tracker({ session }) {
                       onClick={()=>setRT(t)}>{l}</button>
                   ))}
                 </div>
-                {resumeTab==="resume"&&<textarea style={{...S.inp,minHeight:"100px",resize:"vertical",fontSize:"0.72rem"}} value={form.resumeText} onChange={e=>setForm(f=>({...f,resumeText:e.target.value}))} placeholder="Paste your resume text here..."/>}
-                {resumeTab==="cover"&&<textarea style={{...S.inp,minHeight:"100px",resize:"vertical",fontSize:"0.72rem"}} value={form.coverLetter} onChange={e=>setForm(f=>({...f,coverLetter:e.target.value}))} placeholder="Paste your cover letter here..."/>}
+                {resumeTab==="resume"&&<div>
+                  <div style={{display:"flex",gap:"8px",marginBottom:"8px"}}>
+                    <button style={{...S.btn,...S.btnG,fontSize:"0.7rem"}} onClick={()=>resumeFileRef.current?.click()}>📎 Upload PDF</button>
+                    {form.resumeUrl&&<span style={{fontSize:"0.7rem",color:"#059669",alignSelf:"center"}}>✓ File uploaded</span>}
+                  </div>
+                  <input ref={resumeFileRef} type="file" accept=".pdf,.doc,.docx" style={{display:"none"}} onChange={e=>handleFileUpload(e,"resume")}/>
+                  <textarea style={{...S.inp,minHeight:"100px",resize:"vertical",fontSize:"0.72rem"}} value={form.resumeText} onChange={e=>setForm(f=>({...f,resumeText:e.target.value}))} placeholder="Or paste resume text here..."/>
+                </div>}
+                {resumeTab==="cover"&&<div>
+                  <div style={{display:"flex",gap:"8px",marginBottom:"8px"}}>
+                    <button style={{...S.btn,...S.btnG,fontSize:"0.7rem"}} onClick={()=>coverFileRef.current?.click()}>📎 Upload PDF</button>
+                    {form.coverUrl&&<span style={{fontSize:"0.7rem",color:"#059669",alignSelf:"center"}}>✓ File uploaded</span>}
+                  </div>
+                  <input ref={coverFileRef} type="file" accept=".pdf,.doc,.docx" style={{display:"none"}} onChange={e=>handleFileUpload(e,"cover")}/>
+                  <textarea style={{...S.inp,minHeight:"100px",resize:"vertical",fontSize:"0.72rem"}} value={form.coverLetter} onChange={e=>setForm(f=>({...f,coverLetter:e.target.value}))} placeholder="Or paste cover letter here..."/>
+                </div>}
                 {resumeTab==="interview"&&<textarea style={{...S.inp,minHeight:"100px",resize:"vertical",fontSize:"0.72rem"}} value={form.interviewNotes} onChange={e=>setForm(f=>({...f,interviewNotes:e.target.value}))} placeholder="Questions asked, notes from interviews..."/>}
               </div>
               <div style={S.mfoot}>
@@ -819,18 +865,38 @@ function Tracker({ session }) {
                 {app.resume_text&&<div style={{marginBottom:"12px"}}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"6px"}}>
                     <label style={S.lbl}>Resume</label>
-                    <button style={{...S.btn,...S.btnG,padding:"4px 10px",fontSize:"0.65rem"}} onClick={()=>setViewRes(v=>!v)}><Icon name="eye" size={11}/>{viewRes?"Hide":"View"}</button>
+                    <div style={{display:"flex",gap:"6px"}}>
+                      {app.resume_url&&<button style={{...S.btn,...S.btnG,padding:"4px 10px",fontSize:"0.65rem"}} onClick={async()=>{ const url=await getFileUrl(app.resume_url); if(url) window.open(url,"_blank"); }}>⬇ Download</button>}
+                      <button style={{...S.btn,...S.btnG,padding:"4px 10px",fontSize:"0.65rem"}} onClick={()=>setViewRes(v=>!v)}><Icon name="eye" size={11}/>{viewRes?"Hide":"View"}</button>
+                    </div>
                   </div>
                   {viewRes?<div style={{color:"#475569",fontSize:"0.7rem",background:"#f8fafc",border:"1px solid #e2e8f0",borderRadius:"6px",padding:"12px",whiteSpace:"pre-wrap",maxHeight:"180px",overflowY:"auto",lineHeight:1.6}}>{app.resume_text}</div>
-                  :<div style={{fontSize:"0.7rem",color:"#059669"}}>✓ Resume saved</div>}
+                  :<div style={{fontSize:"0.7rem",color:"#059669"}}>✓ Resume saved{app.resume_url?" (file + text)":""}</div>}
+                </div>}
+                {!app.resume_text&&app.resume_url&&<div style={{marginBottom:"12px"}}>
+                  <label style={S.lbl}>Resume</label>
+                  <div style={{display:"flex",alignItems:"center",gap:"8px",marginTop:"4px"}}>
+                    <span style={{fontSize:"0.72rem",color:"#059669"}}>✓ File uploaded</span>
+                    <button style={{...S.btn,...S.btnG,padding:"4px 10px",fontSize:"0.65rem"}} onClick={async()=>{ const url=await getFileUrl(app.resume_url); if(url) window.open(url,"_blank"); }}>⬇ Download</button>
+                  </div>
                 </div>}
                 {app.cover_letter&&<div style={{marginBottom:"12px"}}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"6px"}}>
                     <label style={S.lbl}>Cover Letter</label>
-                    <button style={{...S.btn,...S.btnG,padding:"4px 10px",fontSize:"0.65rem"}} onClick={()=>setViewCL(v=>!v)}><Icon name="eye" size={11}/>{viewCL?"Hide":"View"}</button>
+                    <div style={{display:"flex",gap:"6px"}}>
+                      {app.cover_letter_url&&<button style={{...S.btn,...S.btnG,padding:"4px 10px",fontSize:"0.65rem"}} onClick={async()=>{ const url=await getFileUrl(app.cover_letter_url); if(url) window.open(url,"_blank"); }}>⬇ Download</button>}
+                      <button style={{...S.btn,...S.btnG,padding:"4px 10px",fontSize:"0.65rem"}} onClick={()=>setViewCL(v=>!v)}><Icon name="eye" size={11}/>{viewCL?"Hide":"View"}</button>
+                    </div>
                   </div>
                   {viewCL?<div style={{color:"#475569",fontSize:"0.7rem",background:"#f8fafc",border:"1px solid #e2e8f0",borderRadius:"6px",padding:"12px",whiteSpace:"pre-wrap",maxHeight:"180px",overflowY:"auto",lineHeight:1.6}}>{app.cover_letter}</div>
-                  :<div style={{fontSize:"0.7rem",color:"#7c3aed"}}>✓ Cover letter saved</div>}
+                  :<div style={{fontSize:"0.7rem",color:"#7c3aed"}}>✓ Cover letter saved{app.cover_letter_url?" (file + text)":""}</div>}
+                </div>}
+                {!app.cover_letter&&app.cover_letter_url&&<div style={{marginBottom:"12px"}}>
+                  <label style={S.lbl}>Cover Letter</label>
+                  <div style={{display:"flex",alignItems:"center",gap:"8px",marginTop:"4px"}}>
+                    <span style={{fontSize:"0.72rem",color:"#7c3aed"}}>✓ File uploaded</span>
+                    <button style={{...S.btn,...S.btnG,padding:"4px 10px",fontSize:"0.65rem"}} onClick={async()=>{ const url=await getFileUrl(app.cover_letter_url); if(url) window.open(url,"_blank"); }}>⬇ Download</button>
+                  </div>
                 </div>}
                 {app.interview_notes&&<div style={{marginBottom:"16px"}}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"6px"}}>
